@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "net.ririfa"
-version = "4.2.0"
+version = "4.2.1"
 
 repositories {
 	mavenCentral()
@@ -39,7 +39,7 @@ dependencies {
 	modCompileOnly("org.apache.logging.log4j:log4j-api:+")
 	modCompileOnly("org.apache.logging.log4j:log4j-core:+")
 
-	includeInJar("net.dv8tion:JDA:5.2.1") {
+	includeInJar("net.dv8tion:JDA:5.3.0") {
 		exclude("net.java.dev.jna", "jna")
 	}
 	includeInJar("org.yaml:snakeyaml:2.3")
@@ -98,7 +98,9 @@ tasks.named("remapSourcesJar") {
 tasks.withType<Jar> {
 	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
-	archiveFileName.set("${project.name}-${project.version}.jar")
+	val minecraftVersion: String by project
+
+	archiveFileName.set("${project.name}-${project.version}-${minecraftVersion}.jar")
 	archiveClassifier = ""
 
 	from("LICENSE") {

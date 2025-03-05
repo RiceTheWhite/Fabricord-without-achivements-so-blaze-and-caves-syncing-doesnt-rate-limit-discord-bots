@@ -45,6 +45,7 @@ Discord:
 Exception:
   Config:
     RequiredPropertyIsNotConfigured: "The required property (%s) is not configured in the settings file (%s)."
+    SoftRequiredPropertyIsNotConfigured: "The recommended property (%s) is not set in the settings file (%s). Mod will continue to work."
 
     WebHookUrlIsNotConfiguredOrInvalid: "The Webhook URL is not properly configured in the settings file (%s)."
 

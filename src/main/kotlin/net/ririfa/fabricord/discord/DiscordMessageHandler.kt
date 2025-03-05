@@ -56,7 +56,7 @@ object DiscordMessageHandler {
 	}
 
 	private fun createMessage(event: MessageReceivedEvent, isMention: Boolean, updatedContent: String?): MutableText? {
-		val channelId: String = Config.logChannelID
+		val channelId: String = Config.logChannelID ?: return null
 		if (event.channel.id != channelId || event.author.isBot) {
 			return null
 		}

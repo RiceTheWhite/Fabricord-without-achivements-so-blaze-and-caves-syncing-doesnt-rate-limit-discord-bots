@@ -11,7 +11,8 @@ import net.ririfa.fabricord.translation.FabricordMessageKey
 import java.awt.Color
 
 object DiscordEmbed {
-	private fun sendEmbedToDiscord(color: Color, author: String? = null, imageUrl: String, channelId: String = Config.logChannelID) {
+	private fun sendEmbedToDiscord(color: Color, author: String? = null, imageUrl: String, channelId: String? = Config.logChannelID) {
+		if (channelId == null) return
 		if (channelId.isBlank()) {
 			Logger.error(LM.getSysMessage(FabricordMessageKey.Discord.Config.LogChannelIDIsBlank))
 			return

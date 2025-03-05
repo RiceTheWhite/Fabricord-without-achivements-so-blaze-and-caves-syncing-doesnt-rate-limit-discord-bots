@@ -62,6 +62,7 @@ sealed class FabricordMessageKey : MessageKey<FabricordMessageProvider, Text> {
 	sealed class Exception : FabricordMessageKey() {
 		sealed class Config : Exception() {
 			object RequiredPropertyIsNotConfigured : Config()
+			object SoftRequiredPropertyIsNotConfigured : Config()
 
 			object WebHookUrlIsNotConfiguredOrInvalid : Config()
 		}

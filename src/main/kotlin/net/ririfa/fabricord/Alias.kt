@@ -12,7 +12,6 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 val JDA by lazy { DiscordBotManager.jda }
-val FC = Fabricord.instance
 val LM: LangMan<FabricordMessageProvider, Text> by lazy { Fabricord.langMan }
 val Logger: Logger = Fabricord.logger
 val Server: MinecraftServer by lazy { Fabricord.server }

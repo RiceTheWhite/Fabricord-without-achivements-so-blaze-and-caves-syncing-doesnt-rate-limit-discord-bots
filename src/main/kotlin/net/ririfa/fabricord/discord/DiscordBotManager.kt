@@ -116,7 +116,7 @@ object DiscordBotManager {
 
 	private val discordListener = object : ListenerAdapter() {
 		override fun onMessageReceived(event: MessageReceivedEvent) {
-			if (event.channel == Config.logChannelID.let { jda?.getTextChannelById(it) }) {
+			if (event.channel == Config.logChannelID?.let { jda?.getTextChannelById(it) }) {
 				FT {
 					val (mentionedPlayers, foundUUID) = findMentionedPlayers(event.message.contentRaw, Server.playerManager.playerList)
 					if (mentionedPlayers.isNotEmpty()) {
@@ -311,8 +311,9 @@ object DiscordBotManager {
 	}
 
 	fun sendToDiscord(message: String) {
+		if (ConfigManager.logChannelIDIsNotSet) return
 		FT {
-			Config.logChannelID.let {
+			Config.logChannelID?.let {
 				val messageAction = jda?.getTextChannelById(it)?.sendMessage(message)
 				if (Config.allowMentions == false) {
 					messageAction?.setAllowedMentions(emptySet())

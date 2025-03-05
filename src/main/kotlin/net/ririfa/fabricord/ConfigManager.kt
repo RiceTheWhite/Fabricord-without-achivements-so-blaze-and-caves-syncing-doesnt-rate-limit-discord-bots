@@ -5,6 +5,7 @@ import net.ririfa.fabricord.translation.FabricordMessageKey
 import net.ririfa.fabricord.util.copyResourceToFile
 import net.ririfa.fabricord.util.extractWebhookIdFromUrl
 import net.ririfa.fabricord.util.toBooleanOrNull
+import org.jetbrains.annotations.Nullable
 import org.yaml.snakeyaml.Yaml
 import java.io.IOException
 import java.math.BigDecimal
@@ -12,6 +13,7 @@ import java.math.BigInteger
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.notExists
+import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.memberProperties
 
 object ConfigManager {
@@ -20,6 +22,7 @@ object ConfigManager {
 	val yaml = Yaml()
 	val configFile: Path = ModDir.resolve("config.yml")
 	var isErrorOccurred = false
+	var logChannelIDIsNotSet = false
 
 	fun init() {
 		checkRequiredFilesAndDirectories()
@@ -104,11 +107,18 @@ object ConfigManager {
 		Logger.debug("Found ${properties.size} properties in Config class.")
 
 		for (property in properties) {
-			if (property.annotations.any { it is Required }) {
+			val requiredAnnotation = property.findAnnotation<Required>()
+
+			if (requiredAnnotation != null) {
 				val value = property.getter.call(config) as? String
 				if (value.isNullOrBlank()) {
-					Logger.error(LM.getSysMessage(FabricordMessageKey.Exception.Config.RequiredPropertyIsNotConfigured, configFile, property.name))
-					isErrorOccurred = true
+					if (requiredAnnotation.soft) {
+						Logger.warn(LM.getSysMessage(FabricordMessageKey.Exception.Config.RequiredPropertyIsNotConfigured, configFile, property.name))
+						logChannelIDIsNotSet = true
+					} else {
+						Logger.error(LM.getSysMessage(FabricordMessageKey.Exception.Config.SoftRequiredPropertyIsNotConfigured, configFile, property.name))
+						isErrorOccurred = true
+					}
 				}
 			}
 		}
@@ -121,8 +131,9 @@ object ConfigManager {
 			}
 
 			config = Config(
-				botToken = lc<String>("BotToken") ?: "",
-				logChannelID = lc<String>("LogChannelID") ?: "",
+				botToken = lc("BotToken") ?: "",
+				logChannelID = lc("LogChannelID"),
+				dontSendChatToDiscord = lc("dontSendChatToDiscord"),
 				botActivityMessage = lc("BotActivityMessage"),
 				botActivityStatus = lc("BotActivityStatus"),
 				botOnlineStatus = lc("BotOnlineStatus"),
@@ -147,8 +158,9 @@ object ConfigManager {
 	// >================================================< \\
 	data class Config(
 		@Required val botToken: String,
-		@Required val logChannelID: String,
+		@Required(true) @Nullable val logChannelID: String?,
 
+		var dontSendChatToDiscord: Boolean? = false,
 		var botActivityMessage: String? = null,
 		var botActivityStatus: String? = null,
 		var botOnlineStatus: String? = null,
@@ -168,6 +180,7 @@ object ConfigManager {
 		var consoleLogChannelID: String? = null,
 	) {
 		fun nullCheck() {
+			if (dontSendChatToDiscord == null) dontSendChatToDiscord = false
 			if (botActivityMessage.isNullOrBlank()) botActivityMessage = "Minecraft Server"
 			if (botActivityStatus.isNullOrBlank()) botActivityStatus = "playing"
 			if (botOnlineStatus.isNullOrBlank()) botOnlineStatus = "online"
@@ -182,7 +195,7 @@ object ConfigManager {
 			if (mentionBlockedUserID == null) mentionBlockedUserID = emptySet()
 			if (mentionBlockedRoleID == null) mentionBlockedRoleID = emptySet()
 
-			if (enableConsoleLog == null) enableConsoleLog = true
+			if (enableConsoleLog == null) enableConsoleLog = false
 			if (consoleLogChannelID.isNullOrBlank()) consoleLogChannelID = "0"
 		}
 

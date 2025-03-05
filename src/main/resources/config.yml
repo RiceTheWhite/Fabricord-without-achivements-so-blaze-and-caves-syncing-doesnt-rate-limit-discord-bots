@@ -1,8 +1,8 @@
-# Thank you for introducing the mod.
-# You can bridge Discord and Minecraft chat!
+# Thank you for installing this mod!
+# Now let's put a portal on Discord and the Minecraft server chat!
 
 # Click here for various links↓.
-# GitHub -> https://github.com/KT-Ruxy/Fabricord
+# GitHub -> https://github.com/ririf4/Fabricord
 # Modrinth -> https://modrinth.com/mod/fabricord
 
 # BotToken for use with Discord.
@@ -13,6 +13,12 @@ BotToken: ""
 # If Blank, the mod will not send Minecraft Server General Chat to Discord.
 # To get a Channel ID -> https://support.discord.com/hc/en-us/articles/206346498-Where-can-I-find-my-User-Server-Message-ID
 LogChannelID: ""
+
+# When true, all player chats are no longer comprehensively bridged.
+dontSendChatToDiscord: false
+
+# If you want to disable even the server startup logs, set `LogChannelID` to empty;
+# if you want to disable chat only, set `dontSendChatToDiscord` to true
 
 # >----- Advanced Settings -----< #
 
@@ -31,11 +37,11 @@ BotActivityMessage: ""
 BotOnlineStatus: ""
 
 # The Log Style can be changed.
-# "Classic", "modern" are available.
+# "classic", "modern" are available.
 # If blank, "classic" is automatically selected.
 MessageStyle: ""
 
-# If Message_Style is "modern", you need to set the Webhook URL.
+# If MessageStyle is "modern", you have to set the Webhook URL.
 # To get a Webhook URL -> https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks
 WebhookUrl: ""
 

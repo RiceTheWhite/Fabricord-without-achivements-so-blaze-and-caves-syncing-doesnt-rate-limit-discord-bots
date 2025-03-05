@@ -35,7 +35,6 @@ import java.util.concurrent.ScheduledExecutorService
 class Fabricord : DedicatedServerModInitializer {
 	companion object {
 		const val MOD_ID = "fabricord"
-		val instance: Fabricord by lazy { Fabricord() }
 
 		lateinit var server: MinecraftServer
 		lateinit var langMan: LangMan<FabricordMessageProvider, Text>
@@ -74,7 +73,7 @@ class Fabricord : DedicatedServerModInitializer {
 
 	private fun extractLangFiles() {
 		try {
-			val targetDir = Paths.get("$ModDir/lang")
+			val targetDir = Paths.get("$modDir/lang")
 			if (!Files.exists(targetDir)) {
 				Files.createDirectories(targetDir)
 			}
@@ -118,9 +117,11 @@ class Fabricord : DedicatedServerModInitializer {
 	}
 
 	private fun registerServerEvents() {
-		consoleAppender = ConsoleTrackerAppender("FabricordConsoleTracker")
-		val rootLogger = LogManager.getRootLogger() as org.apache.logging.log4j.core.Logger
-		rootLogger.addAppender(consoleAppender)
+		if (Config.enableConsoleLog!!) {
+			consoleAppender = ConsoleTrackerAppender("FabricordConsoleTracker")
+			val rootLogger = LogManager.getRootLogger() as org.apache.logging.log4j.core.Logger
+			rootLogger.addAppender(consoleAppender)
+		}
 
 		CommandRegistrationCallback.EVENT.register { dispatcher, _, _ ->
 			//			GroupManager.registerAll(dispatcher)
@@ -136,7 +137,6 @@ class Fabricord : DedicatedServerModInitializer {
 			if (DiscordBotManager.botIsInitialized) {
 				DiscordBotManager.stop()
 			}
-			rootLogger.removeAppender(consoleAppender)
 			consoleAppender.stop()
 		}
 
