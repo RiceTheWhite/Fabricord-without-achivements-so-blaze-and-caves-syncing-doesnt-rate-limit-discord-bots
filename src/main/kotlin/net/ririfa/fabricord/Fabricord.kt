@@ -32,7 +32,6 @@ import java.nio.file.Path
 import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
-import java.util.stream.Stream
 
 class Fabricord : DedicatedServerModInitializer {
 	companion object {
