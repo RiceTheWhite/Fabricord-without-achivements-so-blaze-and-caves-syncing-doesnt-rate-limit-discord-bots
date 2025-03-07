@@ -1,5 +1,13 @@
 name: GitHub to Discord Webhook
-on: [push]
+
+on:
+  push:
+    branches:
+      - v2
+  pull_request:
+    types: [ opened, synchronize, closed ]
+  issues:
+    types: [ opened, edited, closed ]
 
 jobs:
   send_webhook:
@@ -23,14 +31,64 @@ jobs:
           java-version: ${{ matrix.java }}
           distribution: 'microsoft'
 
-      - name: Make Gradle Wrapper Executable
+      - name: Make Workflow Gradle Wrapper Executable
+        working-directory: workflow
         run: chmod +x ./gradlew
 
-      - name: Run Webhook Script
+      - name: Determine event type
+        id: event_type
+        run: |
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            echo "event_type=commit" >> $GITHUB_ENV
+          elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "event_type=pr" >> $GITHUB_ENV
+          elif [[ "${{ github.event_name }}" == "issues" ]]; then
+            echo "event_type=issues" >> $GITHUB_ENV
+          else
+            echo "event_type=unknown" >> $GITHUB_ENV
+          fi
+
+      - name: Run Webhook Script (Commit)
+        if: env.event_type == 'commit'
+        working-directory: workflow
         env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          DISCORD_COMMIT_WEBHOOK: ${{ secrets.DISCORD_COMMIT_WEBHOOK }}
           GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_REF: ${{ github.ref }}
           GITHUB_SHA: ${{ github.sha }}
           GITHUB_EVENT_HEAD_COMMIT_MESSAGE: ${{ github.event.commits[0].message }}
           GITHUB_ACTOR: ${{ github.actor }}
-        run: ./gradlew run
+        run: ./gradlew run --args="-commit"
+
+      - name: Run Webhook Script (Pull Request)
+        if: env.event_type == 'pr'
+        working-directory: workflow
+        env:
+          DISCORD_PR_WEBHOOK: ${{ secrets.DISCORD_PR_WEBHOOK }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_REF: ${{ github.ref }}
+          GITHUB_PR_TITLE: ${{ github.event.pull_request.title }}
+          GITHUB_PR_BODY: ${{ github.event.pull_request.body }}
+          GITHUB_PR_URL: ${{ github.event.pull_request.html_url }}
+          GITHUB_PR_NUMBER: ${{ github.event.pull_request.number }}
+          GITHUB_PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          GITHUB_PR_STATE: ${{ github.event.pull_request.state }}
+          GITHUB_PR_MERGED: ${{ github.event.pull_request.merged }}
+          GITHUB_EVENT_TYPE: ${{ github.event.action }}
+        run: ./gradlew run --args="-pull-request"
+
+      - name: Run Webhook Script (Issue)
+        if: env.event_type == 'issues'
+        working-directory: workflow
+        env:
+          DISCORD_ISSUE_WEBHOOK: ${{ secrets.DISCORD_ISSUE_WEBHOOK }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_REF: ${{ github.ref }}
+          GITHUB_ISSUE_TITLE: ${{ github.event.issue.title }}
+          GITHUB_ISSUE_BODY: ${{ github.event.issue.body }}
+          GITHUB_ISSUE_URL: ${{ github.event.issue.html_url }}
+          GITHUB_ISSUE_NUMBER: ${{ github.event.issue.number }}
+          GITHUB_ISSUE_AUTHOR: ${{ github.event.issue.user.login }}
+          GITHUB_ISSUE_STATE: ${{ github.event.issue.state }}
+          GITHUB_EVENT_TYPE: ${{ github.event.action }}
+        run: ./gradlew run --args="-issues"
