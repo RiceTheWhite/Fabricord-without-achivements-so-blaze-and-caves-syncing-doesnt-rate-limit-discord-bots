@@ -29,7 +29,7 @@ dependencies {
 	modImplementation("net.fabricmc.fabric-api:fabric-api:$fabricVersion")
 	modImplementation("net.fabricmc:fabric-language-kotlin:$fabricLanguageKotlinVersion")
 
-	modApi("net.dv8tion:JDA:5.2.1") {
+	modApi("net.dv8tion:JDA:5.3.0") {
 		exclude("net.java.dev.jna", "jna")
 	}
 	modApi("org.yaml:snakeyaml:2.3")

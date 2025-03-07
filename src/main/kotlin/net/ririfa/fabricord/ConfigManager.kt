@@ -22,7 +22,6 @@ object ConfigManager {
 	val yaml = Yaml()
 	val configFile: Path = ModDir.resolve("config.yml")
 	var isErrorOccurred = false
-	var logChannelIDIsNotSet = false
 
 	fun init() {
 		checkRequiredFilesAndDirectories()
@@ -100,6 +99,19 @@ object ConfigManager {
 		}
 	}
 
+	/**
+	 * If LogChannelID is not set, bot will do this
+	 * - Handle discord command
+	 * - Console bridge(if enabled)
+	 * - Bot never sends any message (chat, start/stop, achieve/death) from minecraft.
+	 *
+	 * And, If dontSendChatToDiscord is true, bot will do this
+	 * - Send startup/stop message
+	 * - Send achievement and death messages
+	 * - Handle discord command
+	 * - Console bridge(if enabled)
+	 * - But bot never sends any player's message from minecraft
+	 */
 	private fun checkRequiredConfig() {
 		val clazz = config::class
 		val properties = clazz.memberProperties
@@ -112,9 +124,9 @@ object ConfigManager {
 			if (requiredAnnotation != null) {
 				val value = property.getter.call(config) as? String
 				if (value.isNullOrBlank()) {
-					if (requiredAnnotation.soft) {
+					if (requiredAnnotation.soft && requiredAnnotation.named == "logChannelID") {
 						Logger.warn(LM.getSysMessage(FabricordMessageKey.Exception.Config.RequiredPropertyIsNotConfigured, configFile, property.name))
-						logChannelIDIsNotSet = true
+						config.logChannelIDIsNotSet = true
 					} else {
 						Logger.error(LM.getSysMessage(FabricordMessageKey.Exception.Config.SoftRequiredPropertyIsNotConfigured, configFile, property.name))
 						isErrorOccurred = true
@@ -131,7 +143,7 @@ object ConfigManager {
 			}
 
 			config = Config(
-				botToken = lc("BotToken") ?: "",
+				botToken = lc("BotToken"),
 				logChannelID = lc("LogChannelID"),
 				dontSendChatToDiscord = lc("dontSendChatToDiscord"),
 				botActivityMessage = lc("BotActivityMessage"),
@@ -157,29 +169,51 @@ object ConfigManager {
 
 	// >================================================< \\
 	data class Config(
-		@Required val botToken: String,
-		@Required(true) @Nullable val logChannelID: String?,
+		@Required(named = "botToken")
+		@JvmField
+		val botToken: String?,
+		@Required(soft = true, named = "logChannelID")
+		@Nullable
+		@JvmField
+		var logChannelID: String?,
 
+		@JvmField
 		var dontSendChatToDiscord: Boolean? = false,
+		@JvmField
 		var botActivityMessage: String? = null,
+		@JvmField
 		var botActivityStatus: String? = null,
+		@JvmField
 		var botOnlineStatus: String? = null,
+		@JvmField
 		var messageStyle: String? = null,
+		@JvmField
 		val webHookId: String? = null,
+		@JvmField
 		var serverStartMessage: String? = null,
+		@JvmField
 		var serverStopMessage: String? = null,
+		@JvmField
 		var playerJoinMessage: String? = null,
+		@JvmField
 		var playerLeaveMessage: String? = null,
 
+		@JvmField
 		var allowMentions: Boolean? = true,
+		@JvmField
 		var useUserPermissionForMentions: Boolean? = false,
+		@JvmField
 		var mentionBlockedUserID: Set<String>? = emptySet(),
+		@JvmField
 		var mentionBlockedRoleID: Set<String>? = emptySet(),
 
-		var enableConsoleLog: Boolean? = true,
-		var consoleLogChannelID: String? = null,
+		@JvmField
+		var enableConsoleLog: Boolean?,
+		@JvmField
+		var consoleLogChannelID: String?,
 	) {
 		fun nullCheck() {
+			if (logChannelID?.isEmpty() == true) logChannelID = null
 			if (dontSendChatToDiscord == null) dontSendChatToDiscord = false
 			if (botActivityMessage.isNullOrBlank()) botActivityMessage = "Minecraft Server"
 			if (botActivityStatus.isNullOrBlank()) botActivityStatus = "playing"
@@ -194,13 +228,16 @@ object ConfigManager {
 			if (useUserPermissionForMentions == null) useUserPermissionForMentions = false
 			if (mentionBlockedUserID == null) mentionBlockedUserID = emptySet()
 			if (mentionBlockedRoleID == null) mentionBlockedRoleID = emptySet()
-
-			if (enableConsoleLog == null) enableConsoleLog = false
-			if (consoleLogChannelID.isNullOrBlank()) consoleLogChannelID = "0"
 		}
 
 		fun getFile(): Path {
 			return configFile
 		}
+
+		/**
+		 * If this true, [net.ririfa.fabricord.discord.DiscordBotManager.sendToDiscord] will not do anything
+		 */
+		@JvmField
+		var logChannelIDIsNotSet = false
 	}
 }

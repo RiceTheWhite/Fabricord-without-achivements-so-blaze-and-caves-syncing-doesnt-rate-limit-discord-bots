@@ -1,0 +1,30 @@
+name: GitHub to Discord Webhook
+
+on:
+  push:
+    branches:
+      - v2
+
+jobs:
+  send_webhook:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Run Webhook Script
+        working-directory: workflow
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_EVENT_HEAD_COMMIT_MESSAGE: ${{ github.event.commits[0].message }}
+          GITHUB_ACTOR: ${{ github.actor }}
+        run: ./gradlew run

@@ -36,7 +36,7 @@ object DiscordBotManager {
 	private val uuidPattern = Regex("@\\{([0-9a-fA-F-]+)}")
 
 	init {
-		FT(delay = 0, period = 2000, unit = TimeUnit.MILLISECONDS, newThread = true) {
+		FT(delay = 0, period = 3500, unit = TimeUnit.MILLISECONDS, newThread = true) {
 			flushLogQueue()
 		}
 	}
@@ -167,12 +167,11 @@ object DiscordBotManager {
 					)
 				}
 
-				event.replyEmbeds(embedBuilder.build()).queue { message ->
-					FT(delay = 7500, unit = TimeUnit.MILLISECONDS, argument = message) { msg ->
-						msg?.deleteOriginal()?.queue()
+				event.replyEmbeds(embedBuilder.build()).queue({ message ->
+					FT(delay = 10000, unit = TimeUnit.MILLISECONDS, argument = message) { msg ->
+						msg?.deleteOriginal()?.queue({}, {})
 					}
-				}
-
+				}, {})
 			}
 		}
 
@@ -197,11 +196,11 @@ object DiscordBotManager {
 								"**$memUsage:** `${memoryUsage}`"
 					)
 
-				event.replyEmbeds(embedBuilder.build()).queue { message ->
+				event.replyEmbeds(embedBuilder.build()).queue({ message ->
 					FT(delay = 10000, unit = TimeUnit.MILLISECONDS, argument = message) { msg ->
-						msg?.deleteOriginal()?.queue()
+						msg?.deleteOriginal()?.queue({}, {})
 					}
-				}
+				}, {})
 			}
 		}
 
@@ -311,7 +310,7 @@ object DiscordBotManager {
 	}
 
 	fun sendToDiscord(message: String) {
-		if (ConfigManager.logChannelIDIsNotSet) return
+		if (Config.logChannelIDIsNotSet) return
 		FT {
 			Config.logChannelID?.let {
 				val messageAction = jda?.getTextChannelById(it)?.sendMessage(message)

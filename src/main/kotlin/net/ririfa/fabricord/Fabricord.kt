@@ -24,13 +24,15 @@ import net.ririfa.langman.LangMan
 import org.apache.logging.log4j.LogManager
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.yaml.snakeyaml.Yaml
+import java.net.URI
 import java.nio.file.FileSystems
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.Paths
 import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
+import java.util.stream.Stream
 
 class Fabricord : DedicatedServerModInitializer {
 	companion object {
@@ -53,7 +55,7 @@ class Fabricord : DedicatedServerModInitializer {
 	}
 
 	override fun onInitializeServer() {
-		extractLangFiles()
+		LanguageAutoUpdater.checkForUpdatesAndExtract()
 		langMan = LangMan.createNew(
 			{ Text.of(it) },
 			FabricordMessageKey::class,
@@ -64,60 +66,12 @@ class Fabricord : DedicatedServerModInitializer {
 			langDir.toFile(),
 			availableLang
 		)
-		availableLang.forEach {
-			langMan.logMissingKeys(it)
-		}
 		ConfigManager.init()
 		registerServerEvents()
 	}
 
-	private fun extractLangFiles() {
-		try {
-			val targetDir = Paths.get("$modDir/lang")
-			if (!Files.exists(targetDir)) {
-				Files.createDirectories(targetDir)
-			}
-
-			val devSourceDir = Paths.get("build/resources/main/assets/$MOD_ID/lang")
-			if (Files.exists(devSourceDir)) {
-				copyLanguageFiles(devSourceDir, targetDir)
-				return
-			}
-
-			val langPath = "assets/$MOD_ID/lang/"
-			val classLoader = this::class.java.classLoader
-			val resourceUrl = classLoader.getResource(langPath)
-
-			if (resourceUrl == null) {
-				logger.error("Failed to find language directory in JAR: $langPath")
-				return
-			}
-
-			val uri = resourceUrl.toURI()
-			val fs = if (uri.scheme == "jar") FileSystems.newFileSystem(uri, emptyMap<String, Any>()) else null
-			val langDirPath = Paths.get(uri)
-
-			copyLanguageFiles(langDirPath, targetDir)
-
-			fs?.close()
-		} catch (e: Exception) {
-			logger.error("Failed to extract language files", e)
-		}
-	}
-
-	private fun copyLanguageFiles(sourceDir: Path, targetDir: Path) {
-		Files.walk(sourceDir).use { paths ->
-			paths.filter { Files.isRegularFile(it) && it.toString().endsWith(".yml") }.forEach { resourceFile ->
-				val targetFile = targetDir.resolve(resourceFile.fileName.toString())
-				if (!Files.exists(targetFile)) {
-					Files.copy(resourceFile, targetFile)
-				}
-			}
-		}
-	}
-
 	private fun registerServerEvents() {
-		if (Config.enableConsoleLog!!) {
+		if (Config.enableConsoleLog == true && Config.consoleLogChannelID != null) {
 			consoleAppender = ConsoleTrackerAppender("FabricordConsoleTracker")
 			val rootLogger = LogManager.getRootLogger() as org.apache.logging.log4j.core.Logger
 			rootLogger.addAppender(consoleAppender)
@@ -137,38 +91,42 @@ class Fabricord : DedicatedServerModInitializer {
 			if (DiscordBotManager.botIsInitialized) {
 				DiscordBotManager.stop()
 			}
-			consoleAppender.stop()
+			if (consoleAppender.isInitialized) {
+				consoleAppender.stop()
+			}
 		}
 
-		ServerPlayConnectionEvents.JOIN.register { handler, _, _ ->
-			val player = handler.player
+		if (!Config.logChannelIDIsNotSet) {
+			ServerPlayConnectionEvents.JOIN.register { handler, _, _ ->
+				val player = handler.player
 
-			if (DiscordBotManager.botIsInitialized) {
-				FT {
-					DiscordEmbed.sendPlayerJoinEmbed(player)
+				if (DiscordBotManager.botIsInitialized) {
+					FT {
+						DiscordEmbed.sendPlayerJoinEmbed(player)
+					}
+				}
+			}
+			ServerPlayConnectionEvents.DISCONNECT.register { handler, _ ->
+				if (DiscordBotManager.botIsInitialized) {
+					FT {
+						val player = handler.player
+						DiscordEmbed.sendPlayerLeftEmbed(player)
+					}
+				}
+			}
+			ServerMessageEvents.CHAT_MESSAGE.register { message, sender, params ->
+				if (DiscordBotManager.botIsInitialized && Config.dontSendChatToDiscord == false) {
+					val uuid = sender.uuid
+
+					//TODO: Also consider group chats -> [GroupManager]
+					// But probably controllable via Mixin.
+					if (uuid in localChatToggled) return@register
+
+					val content = message.content.string
+					handleMCMessage(sender, content)
 				}
 			}
 		}
-		ServerPlayConnectionEvents.DISCONNECT.register(ServerPlayConnectionEvents.Disconnect { handler, _ ->
-			if (DiscordBotManager.botIsInitialized) {
-				FT {
-					val player = handler.player
-					DiscordEmbed.sendPlayerLeftEmbed(player)
-				}
-			}
-		})
-		ServerMessageEvents.CHAT_MESSAGE.register(ServerMessageEvents.ChatMessage { message, sender, params ->
-			if (DiscordBotManager.botIsInitialized) {
-				val uuid = sender.uuid
-
-				//TODO: Also consider group chats -> [GroupManager]
-				// But probably controllable via Mixin.
-				if (uuid in localChatToggled) return@ChatMessage
-
-				val content = message.content.string
-				handleMCMessage(sender, content)
-			}
-		})
 	}
 
 	private fun registerLCCommand(dispatcher: CommandDispatcher<ServerCommandSource>) {
@@ -215,5 +173,107 @@ class Fabricord : DedicatedServerModInitializer {
 				)
 		)
 
+	}
+
+	object LanguageAutoUpdater {
+		private val yaml = Yaml()
+		private const val DEFAULT_VERSION = "1.0.0"
+
+		fun checkForUpdatesAndExtract() {
+			try {
+				if (!Files.exists(langDir)) {
+					Files.createDirectories(langDir)
+					extractLangFiles(langDir)
+					return
+				}
+
+				val latestVersions = getLatestVersionsFromJar() ?: return
+				val needsUpdate = Files.list(langDir).use { files ->
+					files.toList().filter { it.toString().endsWith(".yml") }.any { file ->
+						val langKey = file.fileName.toString().removeSuffix(".yml")
+						val latestVersion = latestVersions[langKey] ?: DEFAULT_VERSION
+						val currentVersion = getVersionFromYaml(file) ?: DEFAULT_VERSION
+						isOlderVersion(currentVersion, latestVersion)
+					}
+				}
+
+				if (needsUpdate) {
+					extractLangFiles(langDir)
+				}
+			} catch (e: Exception) {
+				logger.error("Failed to check for language file updates", e)
+			}
+		}
+
+		private fun extractLangFiles(targetDir: Path) {
+			try {
+				val langPath = "assets/${MOD_ID}/lang/"
+				val classLoader = this::class.java.classLoader
+				val resourceStream = classLoader.getResourceAsStream(langPath) ?: run {
+					logger.error("Failed to find language directory in JAR: $langPath")
+					return
+				}
+
+				val zipFs = FileSystems.newFileSystem(URI.create("jar:${resourceStream}"), emptyMap<String, Any>())
+				val langDirPath = zipFs.getPath(langPath)
+
+				copyLanguageFiles(langDirPath, targetDir)
+
+				zipFs.close()
+			} catch (e: Exception) {
+				logger.error("Failed to extract language files", e)
+			}
+		}
+
+		private fun copyLanguageFiles(sourceDir: Path, targetDir: Path) {
+			Files.walk(sourceDir).use { paths ->
+				paths.filter { Files.isRegularFile(it) && it.toString().endsWith(".yml") }.forEach { resourceFile ->
+					val targetFile = targetDir.resolve(resourceFile.fileName.toString())
+					Files.copy(resourceFile, targetFile, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+				}
+			}
+		}
+
+		private fun getVersionFromYaml(file: Path): String? {
+			return try {
+				Files.newBufferedReader(file).use { reader ->
+					val data = yaml.load<Map<String, Any>>(reader)
+					data["version"] as? String
+				}
+			} catch (e: Exception) {
+				logger.warn("Failed to read version from ${file.fileName}", e)
+				null
+			}
+		}
+
+		private fun getLatestVersionsFromJar(): Map<String, String>? {
+			return try {
+				val classLoader = this::class.java.classLoader
+				val resourceUrl = classLoader.getResource("assets/${MOD_ID}/lang/langversion.info") ?: return null
+				resourceUrl.openStream().use { inputStream ->
+					val data: Map<String, Any> = yaml.load(inputStream)
+					@Suppress("UNCHECKED_CAST")
+					data["latest"] as? Map<String, String>
+				}
+			} catch (e: Exception) {
+				logger.error("Failed to read langversion.info", e)
+				null
+			}
+		}
+
+		private fun isOlderVersion(current: String, latest: String): Boolean {
+			val currentParts = current.split(".").map { it.toIntOrNull() ?: 0 }
+			val latestParts = latest.split(".").map { it.toIntOrNull() ?: 0 }
+
+			val maxLength = maxOf(currentParts.size, latestParts.size)
+			val paddedCurrent = currentParts + List(maxLength - currentParts.size) { 0 }
+			val paddedLatest = latestParts + List(maxLength - latestParts.size) { 0 }
+
+			for (i in 0 until maxLength) {
+				if (paddedCurrent[i] < paddedLatest[i]) return true
+				if (paddedCurrent[i] > paddedLatest[i]) return false
+			}
+			return false
+		}
 	}
 }
