@@ -4,6 +4,7 @@ import net.ririfa.fabricord.annotations.Required
 import net.ririfa.fabricord.translation.FabricordMessageKey
 import net.ririfa.fabricord.util.copyResourceToFile
 import net.ririfa.fabricord.util.extractWebhookIdFromUrl
+import net.ririfa.fabricord.util.isOlderVersion
 import net.ririfa.fabricord.util.toBooleanOrNull
 import org.jetbrains.annotations.Nullable
 import org.yaml.snakeyaml.Yaml
@@ -23,8 +24,11 @@ object ConfigManager {
 	val configFile: Path = ModDir.resolve("config.yml")
 	var isErrorOccurred = false
 
+	private const val DEFAULT_VERSION = "1.0.0"
+
 	fun init() {
 		checkRequiredFilesAndDirectories()
+		checkForConfigUpdates()
 		reloadConfig()
 		loadConfig()
 		validate()
@@ -41,6 +45,62 @@ object ConfigManager {
 		}
 	}
 
+	private fun checkForConfigUpdates() {
+		try {
+			val latestConfigStream = Fabricord::class.java.getResourceAsStream("/assets/fabricord/config.yml")
+			if (latestConfigStream == null) {
+				Logger.error("Failed to find default config.yml in JAR.")
+				return
+			}
+
+			val latestConfig: Map<String, Any> = yaml.load(latestConfigStream)
+			val latestVersion = latestConfig["Version"] as? String ?: DEFAULT_VERSION
+
+			reloadConfig()
+			val currentVersion = parsedConfig["Version"] as? String ?: DEFAULT_VERSION
+
+			if (isOlderVersion(currentVersion, latestVersion)) {
+				Logger.info("Updating config.yml from $currentVersion to $latestVersion")
+				updateConfigFile()
+			}
+		} catch (e: Exception) {
+			Logger.error("Failed to check for config updates", e)
+		}
+	}
+
+	private fun updateConfigFile() {
+		try {
+			Fabricord::class.java.getResourceAsStream("/assets/fabricord/config.yml")?.use { inputStream ->
+				Files.copy(inputStream, configFile, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+			}
+
+			val newConfigText = Files.readString(configFile)
+
+			var updatedConfigText = newConfigText
+			parsedConfig.forEach { (key, value) ->
+				val regexCheck = Regex("(?m)^$key:\\s*\"(.*?)\"$")
+				val wasQuoted = regexCheck.containsMatchIn(newConfigText)
+
+				val valueStr = when (value) {
+					is Boolean -> value.toString()
+					is String -> if (wasQuoted) "\"$value\"" else value
+					else -> value.toString()
+				}
+
+				val regex = Regex("(?m)^($key):\\s*(\"[^\"]*\"|[^#]*)$")
+				updatedConfigText = regex.replace(updatedConfigText) { match ->
+					"${match.groupValues[1]}: $valueStr"
+				}
+			}
+
+			Files.writeString(configFile, updatedConfigText)
+
+			Logger.info("Config file updated successfully! Comments are preserved!")
+		} catch (e: Exception) {
+			Logger.error("Failed to update config file", e)
+		}
+	}
+
 	// >==================== Helpers ====================< \\
 
 	private fun validate() {
@@ -48,14 +108,15 @@ object ConfigManager {
 		config.nullCheck()
 	}
 
-	private fun checkRequiredFilesAndDirectories() {
+	private fun checkRequiredFilesAndDirectories(): Boolean {
 		try {
 			if (!Files.exists(ModDir)) {
 				Logger.info(LM.getSysMessage(FabricordMessageKey.System.Initialization.DirectoriesAndFiles.ModDirDoesNotExist, ModDir))
 				Files.createDirectories(ModDir)
 			}
 			if (configFile.notExists()) {
-				copyResourceToFile("config.yml", configFile)
+				copyResourceToFile("assets/fabricord/config.yml", configFile)
+				return true
 			}
 		} catch (e: SecurityException) {
 			Logger.error(LM.getSysMessage(FabricordMessageKey.System.Initialization.FailedToCheckOrCreateRequiredDirOrFileBySec), e)
@@ -64,6 +125,7 @@ object ConfigManager {
 		} catch (e: Exception) {
 			Logger.error(LM.getSysMessage(FabricordMessageKey.System.Initialization.FailedToCheckOrCreateRequiredDirOrFile), e)
 		}
+		return false
 	}
 
 	fun resolveNestedKey(config: Map<String, Any>, key: String): Any? {
@@ -145,7 +207,7 @@ object ConfigManager {
 			config = Config(
 				botToken = lc("BotToken"),
 				logChannelID = lc("LogChannelID"),
-				dontSendChatToDiscord = lc("dontSendChatToDiscord"),
+				dontSendChatToDiscord = lc("DontSendChatToDiscord"),
 				botActivityMessage = lc("BotActivityMessage"),
 				botActivityStatus = lc("BotActivityStatus"),
 				botOnlineStatus = lc("BotOnlineStatus"),

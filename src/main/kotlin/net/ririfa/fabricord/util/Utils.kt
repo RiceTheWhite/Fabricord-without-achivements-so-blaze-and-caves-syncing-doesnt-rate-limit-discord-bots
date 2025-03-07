@@ -6,6 +6,17 @@ import java.io.InputStream
 import java.nio.file.Files
 import java.nio.file.Path
 
+fun isOlderVersion(current: String, latest: String): Boolean {
+	val currentParts = current.split(".").map { it.toIntOrNull() ?: 0 }
+	val latestParts = latest.split(".").map { it.toIntOrNull() ?: 0 }
+
+	val maxLength = maxOf(currentParts.size, latestParts.size)
+	val paddedCurrent = currentParts + List(maxLength - currentParts.size) { 0 }
+	val paddedLatest = latestParts + List(maxLength - latestParts.size) { 0 }
+
+	return (0 until maxLength).any { paddedCurrent[it] < paddedLatest[it] }
+}
+
 fun String.toBooleanOrNull(): Boolean? {
 	return when (this.trim().lowercase()) {
 		"true", "1", "t" -> true

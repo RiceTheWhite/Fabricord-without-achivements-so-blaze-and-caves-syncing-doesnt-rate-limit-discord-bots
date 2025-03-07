@@ -1,3 +1,5 @@
+Version: "1.0.1"
+
 # Thank you for installing this mod!
 # Now let's put a portal on Discord and the Minecraft server chat!
 
@@ -15,7 +17,7 @@ BotToken: ""
 LogChannelID: ""
 
 # When true, all player chats are no longer comprehensively bridged.
-dontSendChatToDiscord: false
+DontSendChatToDiscord: false
 
 # If you want to disable even the server startup logs, set `LogChannelID` to empty;
 # if you want to disable chat only, set `dontSendChatToDiscord` to true

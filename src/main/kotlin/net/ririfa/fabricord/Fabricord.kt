@@ -19,14 +19,14 @@ import net.ririfa.fabricord.discord.DiscordPlayerEventHandler.handleMCMessage
 import net.ririfa.fabricord.translation.FabricordMessageKey
 import net.ririfa.fabricord.translation.FabricordMessageProvider
 import net.ririfa.fabricord.translation.adapt
+import net.ririfa.fabricord.util.isOlderVersion
 import net.ririfa.langman.InitType
 import net.ririfa.langman.LangMan
 import org.apache.logging.log4j.LogManager
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.yaml.snakeyaml.Yaml
-import java.net.URI
-import java.nio.file.FileSystems
+import java.io.InputStream
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
@@ -39,7 +39,7 @@ class Fabricord : DedicatedServerModInitializer {
 
 		lateinit var server: MinecraftServer
 		lateinit var langMan: LangMan<FabricordMessageProvider, Text>
-		lateinit var consoleAppender: ConsoleTrackerAppender
+		var consoleAppender: ConsoleTrackerAppender? = null
 
 		val logger: Logger = LoggerFactory.getLogger(Fabricord::class.simpleName)
 		val loader: FabricLoader = FabricLoader.getInstance()
@@ -73,7 +73,7 @@ class Fabricord : DedicatedServerModInitializer {
 		if (Config.enableConsoleLog == true && Config.consoleLogChannelID != null) {
 			consoleAppender = ConsoleTrackerAppender("FabricordConsoleTracker")
 			val rootLogger = LogManager.getRootLogger() as org.apache.logging.log4j.core.Logger
-			rootLogger.addAppender(consoleAppender)
+			rootLogger.addAppender(consoleAppender!!)
 		}
 
 		CommandRegistrationCallback.EVENT.register { dispatcher, _, _ ->
@@ -90,8 +90,8 @@ class Fabricord : DedicatedServerModInitializer {
 			if (DiscordBotManager.botIsInitialized) {
 				DiscordBotManager.stop()
 			}
-			if (consoleAppender.isInitialized) {
-				consoleAppender.stop()
+			if (consoleAppender != null && Config.enableConsoleLog == true) {
+				consoleAppender!!.stop()
 			}
 		}
 
@@ -207,29 +207,34 @@ class Fabricord : DedicatedServerModInitializer {
 		private fun extractLangFiles(targetDir: Path) {
 			try {
 				val langPath = "assets/${MOD_ID}/lang/"
-				val classLoader = this::class.java.classLoader
-				val resourceStream = classLoader.getResourceAsStream(langPath) ?: run {
-					logger.error("Failed to find language directory in JAR: $langPath")
-					return
+				val classLoader = Fabricord::class.java.classLoader
+
+				availableLang.forEach { lang ->
+					val fileName = "$lang.yml"
+					val fullPath = "$langPath$fileName"
+
+					var inputStream: InputStream? = classLoader.getResourceAsStream(fullPath)
+
+					if (inputStream == null) {
+						val fallbackPath = Path.of("build/resources/main/$fullPath")
+						if (Files.exists(fallbackPath)) {
+							inputStream = Files.newInputStream(fallbackPath)
+							logger.warn("Using fallback language file: $fallbackPath")
+						}
+					}
+
+					if (inputStream == null) {
+						logger.warn("Language file not found: $fullPath (also missing in build/resources/main)")
+						return@forEach
+					}
+
+					val targetFile = targetDir.resolve(fileName)
+					Files.copy(inputStream, targetFile, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+					inputStream.close()
+					logger.info("Extracted language file: $fileName")
 				}
-
-				val zipFs = FileSystems.newFileSystem(URI.create("jar:${resourceStream}"), emptyMap<String, Any>())
-				val langDirPath = zipFs.getPath(langPath)
-
-				copyLanguageFiles(langDirPath, targetDir)
-
-				zipFs.close()
 			} catch (e: Exception) {
 				logger.error("Failed to extract language files", e)
-			}
-		}
-
-		private fun copyLanguageFiles(sourceDir: Path, targetDir: Path) {
-			Files.walk(sourceDir).use { paths ->
-				paths.filter { Files.isRegularFile(it) && it.toString().endsWith(".yml") }.forEach { resourceFile ->
-					val targetFile = targetDir.resolve(resourceFile.fileName.toString())
-					Files.copy(resourceFile, targetFile, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
-				}
 			}
 		}
 
@@ -258,21 +263,6 @@ class Fabricord : DedicatedServerModInitializer {
 				logger.error("Failed to read langversion.info", e)
 				null
 			}
-		}
-
-		private fun isOlderVersion(current: String, latest: String): Boolean {
-			val currentParts = current.split(".").map { it.toIntOrNull() ?: 0 }
-			val latestParts = latest.split(".").map { it.toIntOrNull() ?: 0 }
-
-			val maxLength = maxOf(currentParts.size, latestParts.size)
-			val paddedCurrent = currentParts + List(maxLength - currentParts.size) { 0 }
-			val paddedLatest = latestParts + List(maxLength - latestParts.size) { 0 }
-
-			for (i in 0 until maxLength) {
-				if (paddedCurrent[i] < paddedLatest[i]) return true
-				if (paddedCurrent[i] > paddedLatest[i]) return false
-			}
-			return false
 		}
 	}
 }

@@ -34,11 +34,12 @@ fun sendCommitWebhook(webhookUrl: String, repo: String, branch: String) {
 	val authorAvatar = "https://avatars.githubusercontent.com/$commitAuthor"
 
 	val embed = Embed(
-		title = "[${repo}:${branch}] 1 new commit",
+		title = "[${repo}:${branch}] 1 new commit ",
+		url = "https://github.com/${repo}/commit/${commitSha}",
 		description = "[`${commitSha.substring(0, 7)}`](https://github.com/${repo}/commit/${commitSha}) $commitMessage",
 		color = 0x7289DA,
 		timestamp = Instant.now().toString(),
-		footer = Footer("GitHub", "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"),
+		footer = Footer("GitHub"),
 		author = Author(commitAuthor, authorUrl, authorAvatar)
 	)
 
@@ -81,7 +82,7 @@ fun sendIssueWebhook(webhookUrl: String, repo: String, branch: String) {
 		description = "[**$issueTitle**]($issueUrl)\n\n$truncatedBody",
 		color = embedColor,
 		timestamp = Instant.now().toString(),
-		footer = Footer("GitHub Issues", "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"),
+		footer = Footer("GitHub Issues"),
 		author = Author(issueAuthor, authorUrl, authorAvatar)
 	)
 
@@ -102,7 +103,7 @@ fun sendPullRequestWebhook(webhookUrl: String, repo: String, branch: String) {
 	val prNumber = System.getenv("GITHUB_PR_NUMBER") ?: "Unknown"
 	val prAuthor = System.getenv("GITHUB_PR_AUTHOR") ?: "Unknown Author"
 	val authorUrl = "https://github.com/$prAuthor"
-	val authorAvatar = ""
+	val authorAvatar = "https://avatars.githubusercontent.com/$prAuthor"
 	val eventType = System.getenv("GITHUB_EVENT_TYPE")?.replaceFirstChar { it.uppercaseChar() } ?: "Updated"
 
 	val isMerged = System.getenv("GITHUB_PR_MERGED")?.toBoolean() == true
@@ -127,7 +128,7 @@ fun sendPullRequestWebhook(webhookUrl: String, repo: String, branch: String) {
 		description = truncatedBody,
 		color = embedColor,
 		timestamp = Instant.now().toString(),
-		footer = Footer("GitHub PR", "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"),
+		footer = Footer("GitHub PR"),
 		author = Author(prAuthor, authorUrl, authorAvatar)
 	)
 
@@ -179,11 +180,11 @@ data class Embed(
 
 data class Footer(
 	val text: String,
-	val icon_url: String
+	val icon_url: String? = null,
 )
 
 data class Author(
 	val name: String,
 	val url: String,
-	val icon_url: String
+	val icon_url: String? = null
 )
