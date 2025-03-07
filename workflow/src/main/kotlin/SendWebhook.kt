@@ -33,10 +33,12 @@ fun sendCommitWebhook(webhookUrl: String, repo: String, branch: String) {
 	val authorUrl = "https://github.com/$commitAuthor"
 	val authorAvatar = "https://avatars.githubusercontent.com/$commitAuthor"
 
+	val commitTitle = commitMessage.lineSequence().firstOrNull() ?: "No commit message"
+
 	val embed = Embed(
 		title = "[${repo}:${branch}] 1 new commit ",
 		url = "https://github.com/${repo}/commit/${commitSha}",
-		description = "[`${commitSha.substring(0, 7)}`](https://github.com/${repo}/commit/${commitSha}) $commitMessage",
+		description = "[`${commitSha.substring(0, 7)}`](https://github.com/${repo}/commit/${commitSha}) $commitTitle",
 		color = 0x7289DA,
 		timestamp = Instant.now().toString(),
 		footer = Footer("GitHub"),
@@ -79,7 +81,8 @@ fun sendIssueWebhook(webhookUrl: String, repo: String, branch: String) {
 
 	val embed = Embed(
 		title = "[${repo}:${branch}] $issueStatusPrefix$eventType: #$issueNumber $issueTitle",
-		description = "[**$issueTitle**]($issueUrl)\n\n$truncatedBody",
+		url = issueUrl,
+		description = truncatedBody,
 		color = embedColor,
 		timestamp = Instant.now().toString(),
 		footer = Footer("GitHub Issues"),
