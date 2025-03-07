@@ -10,9 +10,9 @@ fun main(args: Array<String>) {
 		return
 	}
 
-	val commitWebhook = System.getenv("DISCORD_COMMIT_WEBHOOK") ?: error("DISCORD_COMMIT_WEBHOOK is not set")
-	val issueWebhook = System.getenv("DISCORD_ISSUE_WEBHOOK") ?: error("DISCORD_ISSUE_WEBHOOK is not set")
-	val prWebhook = System.getenv("DISCORD_PR_WEBHOOK") ?: error("DISCORD_PR_WEBHOOK is not set")
+	val commitWebhook = System.getenv("DISCORD_COMMIT_WEBHOOK")
+	val issueWebhook = System.getenv("DISCORD_ISSUE_WEBHOOK")
+	val prWebhook = System.getenv("DISCORD_PR_WEBHOOK")
 
 	val repo = System.getenv("GITHUB_REPOSITORY") ?: "Unknown"
 	val branch = System.getenv("GITHUB_REF")?.split("/")?.last() ?: "unknown-branch"
@@ -26,6 +26,7 @@ fun main(args: Array<String>) {
 }
 
 fun sendCommitWebhook(webhookUrl: String, repo: String, branch: String) {
+	if (webhookUrl.isEmpty()) return println("Webhook URL is empty. Skipping commit webhook.")
 	val commitSha = System.getenv("GITHUB_SHA") ?: "Unknown"
 	val commitMessage = System.getenv("GITHUB_EVENT_HEAD_COMMIT_MESSAGE") ?: "No commit message"
 	val commitAuthor = System.getenv("GITHUB_ACTOR") ?: "Unknown"
@@ -51,6 +52,7 @@ fun sendCommitWebhook(webhookUrl: String, repo: String, branch: String) {
 }
 
 fun sendIssueWebhook(webhookUrl: String, repo: String, branch: String) {
+	if (webhookUrl.isEmpty()) return println("Webhook URL is empty. Skipping issue webhook.")
 	val issueTitle = System.getenv("GITHUB_ISSUE_TITLE") ?: "Unknown Issue"
 	val issueBody = System.getenv("GITHUB_ISSUE_BODY") ?: "No description"
 	val issueUrl = System.getenv("GITHUB_ISSUE_URL") ?: "Unknown URL"
@@ -93,6 +95,7 @@ fun sendIssueWebhook(webhookUrl: String, repo: String, branch: String) {
 }
 
 fun sendPullRequestWebhook(webhookUrl: String, repo: String, branch: String) {
+	if (webhookUrl.isEmpty()) return println("Webhook URL is empty. Skipping PR webhook.")
 	val prTitle = System.getenv("GITHUB_PR_TITLE") ?: "Unknown PR"
 	val prBody = System.getenv("GITHUB_PR_BODY") ?: "No description"
 	val prUrl = System.getenv("GITHUB_PR_URL") ?: "Unknown URL"

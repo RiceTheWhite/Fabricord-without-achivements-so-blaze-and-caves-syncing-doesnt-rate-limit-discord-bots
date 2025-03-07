@@ -49,7 +49,7 @@ jobs:
           fi
 
       - name: Run Webhook Script (Commit)
-        if: env.event_type == 'commit'
+        if: ${{ env.event_type == 'commit' }}
         working-directory: workflow
         env:
           DISCORD_COMMIT_WEBHOOK: ${{ secrets.DISCORD_COMMIT_WEBHOOK }}
@@ -61,7 +61,7 @@ jobs:
         run: ./gradlew run --args="-commit"
 
       - name: Run Webhook Script (Pull Request)
-        if: env.event_type == 'pr'
+        if: ${{ env.event_type == 'pr' }}
         working-directory: workflow
         env:
           DISCORD_PR_WEBHOOK: ${{ secrets.DISCORD_PR_WEBHOOK }}
@@ -78,7 +78,7 @@ jobs:
         run: ./gradlew run --args="-pull-request"
 
       - name: Run Webhook Script (Issue)
-        if: env.event_type == 'issues'
+        if: ${{ env.event_type == 'issues' }}
         working-directory: workflow
         env:
           DISCORD_ISSUE_WEBHOOK: ${{ secrets.DISCORD_ISSUE_WEBHOOK }}
