@@ -8,7 +8,6 @@ repositories {
 }
 
 dependencies {
-	implementation("net.dv8tion:JDA:5.3.0")
 	implementation("com.google.code.gson:gson:2.12.1")
 }
 

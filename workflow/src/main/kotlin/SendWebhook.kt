@@ -31,7 +31,7 @@ fun sendCommitWebhook(webhookUrl: String, repo: String, branch: String) {
 	val commitMessage = System.getenv("GITHUB_EVENT_HEAD_COMMIT_MESSAGE") ?: "No commit message"
 	val commitAuthor = System.getenv("GITHUB_ACTOR") ?: "Unknown"
 	val authorUrl = "https://github.com/$commitAuthor"
-	val authorAvatar = "https://github.com/$commitAuthor.png"
+	val authorAvatar = "https://avatars.githubusercontent.com/$commitAuthor"
 
 	val embed = Embed(
 		title = "[${repo}:${branch}] 1 new commit",
@@ -44,7 +44,7 @@ fun sendCommitWebhook(webhookUrl: String, repo: String, branch: String) {
 
 	val payload = WebhookPayload(
 		username = "GitHub",
-		avatarUrl = "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png",
+		avatar_url = "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png",
 		embeds = listOf(embed)
 	)
 
@@ -59,7 +59,7 @@ fun sendIssueWebhook(webhookUrl: String, repo: String, branch: String) {
 	val issueNumber = System.getenv("GITHUB_ISSUE_NUMBER") ?: "Unknown"
 	val issueAuthor = System.getenv("GITHUB_ISSUE_AUTHOR") ?: "Unknown Author"
 	val authorUrl = "https://github.com/$issueAuthor"
-	val authorAvatar = "https://github.com/$issueAuthor.png"
+	val authorAvatar = "https://avatars.githubusercontent.com/$issueAuthor"
 	val issueState = System.getenv("GITHUB_ISSUE_STATE") ?: "Unknown State"
 	val eventType = System.getenv("GITHUB_EVENT_TYPE")
 		?.replaceFirstChar { it.uppercaseChar() }
@@ -87,7 +87,7 @@ fun sendIssueWebhook(webhookUrl: String, repo: String, branch: String) {
 
 	val payload = WebhookPayload(
 		username = "GitHub Issues",
-		avatarUrl = "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png",
+		avatar_url = "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png",
 		embeds = listOf(embed)
 	)
 
@@ -102,7 +102,7 @@ fun sendPullRequestWebhook(webhookUrl: String, repo: String, branch: String) {
 	val prNumber = System.getenv("GITHUB_PR_NUMBER") ?: "Unknown"
 	val prAuthor = System.getenv("GITHUB_PR_AUTHOR") ?: "Unknown Author"
 	val authorUrl = "https://github.com/$prAuthor"
-	val authorAvatar = "https://github.com/$prAuthor.png"
+	val authorAvatar = ""
 	val eventType = System.getenv("GITHUB_EVENT_TYPE")?.replaceFirstChar { it.uppercaseChar() } ?: "Updated"
 
 	val isMerged = System.getenv("GITHUB_PR_MERGED")?.toBoolean() == true
@@ -123,7 +123,8 @@ fun sendPullRequestWebhook(webhookUrl: String, repo: String, branch: String) {
 
 	val embed = Embed(
 		title = "[${repo}:${branch}] $eventType: #$prNumber $prTitle",
-		description = "[**$prTitle**]($prUrl)\n\n$truncatedBody",
+		url = prUrl,
+		description = truncatedBody,
 		color = embedColor,
 		timestamp = Instant.now().toString(),
 		footer = Footer("GitHub PR", "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"),
@@ -132,7 +133,7 @@ fun sendPullRequestWebhook(webhookUrl: String, repo: String, branch: String) {
 
 	val payload = WebhookPayload(
 		username = "GitHub PR",
-		avatarUrl = "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png",
+		avatar_url = "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png",
 		embeds = listOf(embed)
 	)
 
@@ -162,12 +163,13 @@ fun sendDiscordWebhook(webhookUrl: String, payload: WebhookPayload) {
 // > ==== For Data Structures ==== < \\
 data class WebhookPayload(
 	val username: String,
-	val avatarUrl: String,
+	val avatar_url: String,
 	val embeds: List<Embed>
 )
 
 data class Embed(
 	val title: String,
+	val url: String? = null,
 	val description: String,
 	val color: Int,
 	val timestamp: String,
@@ -177,11 +179,11 @@ data class Embed(
 
 data class Footer(
 	val text: String,
-	val iconUrl: String
+	val icon_url: String
 )
 
 data class Author(
 	val name: String,
 	val url: String,
-	val iconUrl: String
+	val icon_url: String
 )
