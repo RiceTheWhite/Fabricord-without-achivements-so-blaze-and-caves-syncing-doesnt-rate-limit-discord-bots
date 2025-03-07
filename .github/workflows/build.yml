@@ -4,13 +4,13 @@ on:
     branches:
       - v2
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [ opened, synchronize, reopened ]
 
 jobs:
   build:
     strategy:
       matrix:
-        java: [21]
+        java: [ 21 ]
     runs-on: ubuntu-latest
 
     steps:
@@ -28,7 +28,7 @@ jobs:
             gradle-${{ runner.os }}-
 
       - name: Validate Gradle Wrapper
-        uses: gradle/wrapper-validation-action@v2
+        uses: gradle/wrapper-validation-action@v3
 
       - name: Setup JDK ${{ matrix.java }}
         uses: actions/setup-java@v4
