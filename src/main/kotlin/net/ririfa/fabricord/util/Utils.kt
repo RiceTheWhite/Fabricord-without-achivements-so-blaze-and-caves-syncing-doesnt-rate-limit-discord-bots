@@ -1,6 +1,10 @@
 package net.ririfa.fabricord.util
 
+import net.minecraft.network.packet.s2c.play.PlaySoundS2CPacket
+import net.minecraft.registry.Registries
 import net.minecraft.server.network.ServerPlayerEntity
+import net.minecraft.sound.SoundCategory
+import net.minecraft.sound.SoundEvent
 import net.ririfa.fabricord.Fabricord
 import java.io.InputStream
 import java.nio.file.Files
@@ -15,6 +19,21 @@ fun isOlderVersion(current: String, latest: String): Boolean {
 	val paddedLatest = latestParts + List(maxLength - latestParts.size) { 0 }
 
 	return (0 until maxLength).any { paddedCurrent[it] < paddedLatest[it] }
+}
+
+fun ServerPlayerEntity.playSoundToPlayerMaster(soundEvent: SoundEvent, f: Float, g: Float) {
+	this.networkHandler.sendPacket(
+		PlaySoundS2CPacket(
+			Registries.SOUND_EVENT.getEntry(soundEvent),
+			SoundCategory.MASTER,
+			this.x,
+			this.y,
+			this.z,
+			f,
+			g,
+			this.random.nextLong()
+		)
+	)
 }
 
 fun String.toBooleanOrNull(): Boolean? {

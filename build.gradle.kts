@@ -98,9 +98,8 @@ tasks.named("remapSourcesJar") {
 tasks.withType<Jar> {
 	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
-	val minecraftVersion: String by project
 
-	archiveFileName.set("${project.name}-${project.version}-${minecraftVersion}.jar")
+	archiveFileName.set("${project.name}-${project.version}.jar")
 	archiveClassifier = ""
 
 	from("LICENSE") {

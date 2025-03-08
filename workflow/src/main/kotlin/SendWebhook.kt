@@ -41,7 +41,7 @@ fun sendCommitWebhook(webhookUrl: String, repo: String, branch: String) {
 		description = "[`${commitSha.substring(0, 7)}`](https://github.com/${repo}/commit/${commitSha}) $commitTitle",
 		color = 0x7289DA,
 		timestamp = Instant.now().toString(),
-		footer = Footer("GitHub"),
+		footer = Footer("GitHub Commit"),
 		author = Author(commitAuthor, authorUrl, authorAvatar)
 	)
 
@@ -75,12 +75,10 @@ fun sendIssueWebhook(webhookUrl: String, repo: String, branch: String) {
 		else -> 0x808080
 	}
 
-	val issueStatusPrefix = if (issueState == "closed") "[Closed] " else ""
-
 	val truncatedBody = if (issueBody.length > 550) issueBody.take(550) + "..." else issueBody
 
 	val embed = Embed(
-		title = "[${repo}:${branch}] $issueStatusPrefix$eventType: #$issueNumber $issueTitle",
+		title = "[${repo}:${branch}] $eventType: #$issueNumber $issueTitle",
 		url = issueUrl,
 		description = truncatedBody,
 		color = embedColor,
@@ -90,7 +88,7 @@ fun sendIssueWebhook(webhookUrl: String, repo: String, branch: String) {
 	)
 
 	val payload = WebhookPayload(
-		username = "GitHub Issues",
+		username = "GitHub",
 		avatar_url = "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png",
 		embeds = listOf(embed)
 	)
@@ -136,7 +134,7 @@ fun sendPullRequestWebhook(webhookUrl: String, repo: String, branch: String) {
 	)
 
 	val payload = WebhookPayload(
-		username = "GitHub PR",
+		username = "GitHub",
 		avatar_url = "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png",
 		embeds = listOf(embed)
 	)

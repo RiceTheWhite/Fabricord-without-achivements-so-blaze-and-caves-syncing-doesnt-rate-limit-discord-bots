@@ -2,12 +2,12 @@ package net.ririfa.fabricord.discord
 
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 import net.minecraft.server.network.ServerPlayerEntity
-import net.minecraft.sound.SoundCategory
 import net.minecraft.sound.SoundEvents
 import net.minecraft.text.*
 import net.ririfa.fabricord.Config
 import net.ririfa.fabricord.FT
 import net.ririfa.fabricord.Server
+import net.ririfa.fabricord.util.playSoundToPlayerMaster
 import net.ririfa.fabricord.util.replaceUUIDsWithMCIDs
 import java.awt.Color
 
@@ -24,7 +24,7 @@ object DiscordMessageHandler {
 			val updatedMessageContent = replaceUUIDsWithMCIDs(event.message.contentRaw, Server.playerManager.playerList)
 
 			mentionedPlayers.forEach { player ->
-				player.playSoundToPlayer(SoundEvents.BLOCK_NOTE_BLOCK_PLING.comp_349(), SoundCategory.MASTER, 2.0f, 2.0f)
+				player.playSoundToPlayerMaster(SoundEvents.BLOCK_NOTE_BLOCK_PLING.comp_349(), 2.0f, 2.0f)
 			}
 
 			val mentionMessage: Text =
