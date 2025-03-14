@@ -6,7 +6,6 @@ import com.velocitypowered.api.event.proxy.ProxyShutdownEvent
 import com.velocitypowered.api.plugin.Plugin
 import com.velocitypowered.api.plugin.annotation.DataDirectory
 import com.velocitypowered.api.proxy.ProxyServer
-import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.text.Text
 import net.ririfa.fabricord.ConsoleTrackerAppender
 import net.ririfa.fabricord.Fabricord
@@ -18,7 +17,6 @@ import java.nio.file.Path
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import javax.inject.Inject
-import kotlin.io.resolve
 
 @Plugin(
 	id = MOD_ID,
