@@ -14,6 +14,7 @@ import net.dv8tion.jda.api.requests.GatewayIntent
 import net.minecraft.server.network.ServerPlayerEntity
 import net.ririfa.fabricord.*
 import net.ririfa.fabricord.translation.FabricordMessageKey
+import net.ririfa.fabricord.util.Platform
 import java.awt.Color
 import java.util.*
 import java.util.concurrent.CompletableFuture
@@ -41,7 +42,14 @@ object DiscordBotManager {
 		}
 	}
 
-	fun start() {
+	fun start(platform: Platform) {
+		when (platform) {
+			Platform.FABRIC -> startForFabric()
+			Platform.VELOCITY -> startForVelocity()
+		}
+	}
+
+	private fun startForFabric() {
 		FT {
 			try {
 				if (!validateConfigForModernFirst()) {
@@ -81,6 +89,10 @@ object DiscordBotManager {
 				Logger.error(LM.getSysMessage(FabricordMessageKey.Discord.Bot.CannotStartBot), e)
 			}
 		}
+	}
+
+	private fun startForVelocity() {
+
 	}
 
 	fun stop() {

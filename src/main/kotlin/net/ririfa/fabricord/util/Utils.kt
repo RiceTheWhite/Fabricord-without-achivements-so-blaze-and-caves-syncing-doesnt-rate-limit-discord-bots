@@ -77,3 +77,8 @@ fun replaceUUIDsWithMCIDs(message: String, players: List<ServerPlayerEntity>): P
 	}
 	return Pair(updatedMessage, mentionedPlayers)
 }
+
+enum class Platform {
+	FABRIC,
+	VELOCITY
+}

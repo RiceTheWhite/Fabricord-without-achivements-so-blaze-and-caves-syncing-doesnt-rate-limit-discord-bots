@@ -19,6 +19,7 @@ import net.ririfa.fabricord.discord.DiscordPlayerEventHandler.handleMCMessage
 import net.ririfa.fabricord.translation.FabricordMessageKey
 import net.ririfa.fabricord.translation.FabricordMessageProvider
 import net.ririfa.fabricord.translation.adapt
+import net.ririfa.fabricord.util.Platform
 import net.ririfa.fabricord.util.isOlderVersion
 import net.ririfa.langman.InitType
 import net.ririfa.langman.LangMan
@@ -83,7 +84,7 @@ class Fabricord : DedicatedServerModInitializer {
 		ServerLifecycleEvents.SERVER_STARTED.register { server ->
 			Fabricord.server = server
 			if (!(ConfigManager.isErrorOccurred)) {
-				DiscordBotManager.start()
+				DiscordBotManager.start(Platform.FABRIC)
 			}
 		}
 		ServerLifecycleEvents.SERVER_STOPPING.register { server ->
