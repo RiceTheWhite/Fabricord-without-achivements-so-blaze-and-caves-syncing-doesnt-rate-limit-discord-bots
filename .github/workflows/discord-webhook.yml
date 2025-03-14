@@ -14,11 +14,12 @@ jobs:
     with:
       repo_name: ${{ github.repository }}
       branch_name: ${{ github.ref_name }}
-      event_type: |
+      event_type: >-
         ${{
           github.event_name == 'push' && 'commit' ||
           github.event_name == 'pull_request' && 'pull-request' ||
-          github.event_name == 'issues' && 'issues'
+          github.event_name == 'issues' && 'issues' ||
+          ''
         }}
       commit_sha: ${{ github.sha }}
       commit_message: ${{ github.event.head_commit.message }}
