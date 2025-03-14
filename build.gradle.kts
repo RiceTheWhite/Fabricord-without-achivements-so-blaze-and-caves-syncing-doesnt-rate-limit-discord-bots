@@ -11,6 +11,7 @@ version = "4.2.1"
 
 repositories {
 	mavenCentral()
+	maven("https://repo.velocitypowered.com/snapshots/")
 }
 
 val includeInJar: Configuration by configurations.creating
@@ -38,6 +39,8 @@ dependencies {
 
 	modCompileOnly("org.apache.logging.log4j:log4j-api:+")
 	modCompileOnly("org.apache.logging.log4j:log4j-core:+")
+
+	compileOnly("com.velocitypowered:velocity-api:3.4.0-SNAPSHOT")
 
 	includeInJar("net.dv8tion:JDA:5.3.0") {
 		exclude("net.java.dev.jna", "jna")

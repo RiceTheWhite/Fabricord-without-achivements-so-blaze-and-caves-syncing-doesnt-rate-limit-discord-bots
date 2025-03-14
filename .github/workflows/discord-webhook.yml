@@ -1,105 +1,39 @@
-name: GitHub to Discord Webhook
+name: Notify Discord
 
 on:
   push:
-    branches:
-      - v2
+    branches: [ main ]
   pull_request:
-    types: [ opened, synchronize, closed ]
+    types: [ opened, edited, closed ]
   issues:
     types: [ opened, edited, closed ]
 
 jobs:
-  send_webhook:
-    strategy:
-      matrix:
-        java: [
-          21
-        ]
-    runs-on: ubuntu-22.04
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Cache Gradle dependencies
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/*.gradle.kts') }}
-          restore-keys: |
-            gradle-${{ runner.os }}-
-
-      - name: Validate Gradle Wrapper
-        uses: gradle/actions/wrapper-validation@v4
-
-      - name: Setup JDK ${{ matrix.java }}
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{ matrix.java }}
-          distribution: 'microsoft'
-          cache: gradle
-
-      - name: Make Workflow Gradle Wrapper Executable
-        working-directory: workflow
-        run: chmod +x ./gradlew
-
-      - name: Determine event type
-        id: event_type
-        run: |
-          if [[ "${{ github.event_name }}" == "push" ]]; then
-            echo "event_type=commit" >> $GITHUB_ENV
-          elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            echo "event_type=pr" >> $GITHUB_ENV
-          elif [[ "${{ github.event_name }}" == "issues" ]]; then
-            echo "event_type=issues" >> $GITHUB_ENV
-          else
-            echo "event_type=unknown" >> $GITHUB_ENV
-          fi
-
-      - name: Run Webhook Script (Commit)
-        if: ${{ env.event_type == 'commit' }}
-        working-directory: workflow
-        env:
-          DISCORD_COMMIT_WEBHOOK: ${{ secrets.DISCORD_COMMIT_WEBHOOK }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          GITHUB_REF: ${{ github.ref }}
-          GITHUB_SHA: ${{ github.sha }}
-          GITHUB_EVENT_HEAD_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
-          GITHUB_ACTOR: ${{ github.actor }}
-        run: ./gradlew run --args="-commit"
-
-      - name: Run Webhook Script (Pull Request)
-        if: ${{ env.event_type == 'pr' }}
-        working-directory: workflow
-        env:
-          DISCORD_PR_WEBHOOK: ${{ secrets.DISCORD_PR_WEBHOOK }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          GITHUB_REF: ${{ github.ref }}
-          GITHUB_PR_TITLE: ${{ github.event.pull_request.title }}
-          GITHUB_PR_BODY: ${{ github.event.pull_request.body }}
-          GITHUB_PR_URL: ${{ github.event.pull_request.html_url }}
-          GITHUB_PR_NUMBER: ${{ github.event.pull_request.number }}
-          GITHUB_PR_AUTHOR: ${{ github.event.pull_request.user.login }}
-          GITHUB_PR_STATE: ${{ github.event.pull_request.state }}
-          GITHUB_PR_MERGED: ${{ github.event.pull_request.merged }}
-          GITHUB_EVENT_TYPE: ${{ github.event.action }}
-        run: ./gradlew run --args="-pull-request"
-
-      - name: Run Webhook Script (Issue)
-        if: ${{ env.event_type == 'issues' }}
-        working-directory: workflow
-        env:
-          DISCORD_ISSUE_WEBHOOK: ${{ secrets.DISCORD_ISSUE_WEBHOOK }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          GITHUB_REF: ${{ github.ref }}
-          GITHUB_ISSUE_TITLE: ${{ github.event.issue.title }}
-          GITHUB_ISSUE_BODY: ${{ github.event.issue.body }}
-          GITHUB_ISSUE_URL: ${{ github.event.issue.html_url }}
-          GITHUB_ISSUE_NUMBER: ${{ github.event.issue.number }}
-          GITHUB_ISSUE_AUTHOR: ${{ github.event.issue.user.login }}
-          GITHUB_ISSUE_STATE: ${{ github.event.issue.state }}
-          GITHUB_EVENT_TYPE: ${{ github.event.action }}
-        run: ./gradlew run --args="-issues"
+  notify:
+    uses: ririf4/Actions/.github/workflows/github-to-discord.yml@main
+    with:
+      repo_name: ${{ github.repository }}
+      branch_name: ${{ github.ref_name }}
+      event_type: |
+        ${{
+          github.event_name == 'push' && 'commit' ||
+          github.event_name == 'pull_request' && 'pull-request' ||
+          github.event_name == 'issues' && 'issues'
+        }}
+      commit_sha: ${{ github.sha }}
+      commit_message: ${{ github.event.head_commit.message }}
+      commit_author: ${{ github.actor }}
+      pr_title: ${{ github.event.pull_request.title }}
+      pr_body: ${{ github.event.pull_request.body }}
+      pr_url: ${{ github.event.pull_request.html_url }}
+      pr_number: ${{ github.event.pull_request.number }}
+      pr_author: ${{ github.event.pull_request.user.login }}
+      pr_state: ${{ github.event.pull_request.state }}
+      pr_merged: ${{ github.event.pull_request.merged }}
+      issue_title: ${{ github.event.issue.title }}
+      issue_body: ${{ github.event.issue.body }}
+      issue_url: ${{ github.event.issue.html_url }}
+      issue_number: ${{ github.event.issue.number }}
+      issue_author: ${{ github.event.issue.user.login }}
+      issue_state: ${{ github.event.action }}
+    secrets: inherit
