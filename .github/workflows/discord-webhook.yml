@@ -15,20 +15,23 @@ jobs:
       repo_name: ${{ github.repository }}
       branch_name: ${{ github.ref_name }}
       event_type: ${{ github.event_name }}
+
       commit_sha: ${{ github.sha }}
-      commit_message: ${{ github.event.head_commit.message }}
+      commit_message: ${{ github.event.head_commit.message || 'N/A' }}
       commit_author: ${{ github.actor }}
-      pr_title: ${{ github.event.pull_request.title }}
-      pr_body: ${{ github.event.pull_request.body }}
-      pr_url: ${{ github.event.pull_request.html_url }}
-      pr_number: ${{ github.event.pull_request.number }}
-      pr_author: ${{ github.event.pull_request.user.login }}
-      pr_state: ${{ github.event.pull_request.state }}
-      pr_merged: ${{ github.event.pull_request.merged }}
-      issue_title: ${{ github.event.issue.title }}
-      issue_body: ${{ github.event.issue.body }}
-      issue_url: ${{ github.event.issue.html_url }}
-      issue_number: ${{ github.event.issue.number }}
-      issue_author: ${{ github.event.issue.user.login }}
-      issue_state: ${{ github.event.action }}
+
+      pr_title: ${{ github.event.pull_request.title || 'N/A' }}
+      pr_body: ${{ github.event.pull_request.body || 'N/A' }}
+      pr_url: ${{ github.event.pull_request.html_url || 'N/A' }}
+      pr_number: ${{ github.event.pull_request.number || 'N/A' }}
+      pr_author: ${{ github.event.pull_request.user.login || 'N/A' }}
+      pr_state: ${{ github.event.pull_request.state || 'N/A' }}
+      pr_merged: ${{ github.event.pull_request.merged == false }}
+
+      issue_title: ${{ github.event.issue.title || 'N/A' }}
+      issue_body: ${{ github.event.issue.body || 'N/A' }}
+      issue_url: ${{ github.event.issue.html_url || 'N/A' }}
+      issue_number: ${{ github.event.issue.number || 'N/A' }}
+      issue_author: ${{ github.event.issue.user.login || 'N/A' }}
+      issue_state: ${{ github.event.action || 'N/A' }}
     secrets: inherit
