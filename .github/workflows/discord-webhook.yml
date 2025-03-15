@@ -1,37 +1,40 @@
-name: Notify Discord
+name: Trigger Discord Webhook (Actions Repo)
 
 on:
   push:
     branches: [ v2 ]
   pull_request:
-    types: [ opened, edited, closed ]
+    types: [ opened, synchronize, closed ]
   issues:
     types: [ opened, edited, closed ]
 
 jobs:
-  notify:
-    uses: ririf4/Actions/.github/workflows/github-to-discord.yml@main
-    with:
-      repo_name: ${{ github.repository }}
-      branch_name: ${{ github.ref_name }}
-      event_type: ${{ github.event_name }}
+  trigger-actions-repo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Discord Webhook
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          EVENT_TYPE=${{ github.event_name }}
+          if [[ "$EVENT_TYPE" == "push" ]]; then
+            EVENT_TYPE="commit"
+          elif [[ "$EVENT_TYPE" == "pull_request" ]]; then
+            EVENT_TYPE="pull-request"
+          elif [[ "$EVENT_TYPE" == "issues" ]]; then
+            EVENT_TYPE="issues"
+          fi
 
-      commit_sha: ${{ github.sha }}
-      commit_message: ${{ github.event.head_commit.message || 'N/A' }}
-      commit_author: ${{ github.actor }}
+          PAYLOAD=$(jq -n \
+            --arg repo "${{ github.repository }}" \
+            --arg branch "${{ github.ref_name }}" \
+            --arg event "$EVENT_TYPE" \
+            --arg sha "${{ github.sha }}" \
+            --arg msg "${{ github.event.head_commit.message }}" \
+            --arg author "${{ github.actor }}" \
+            '{repo_name: $repo, branch_name: $branch, event_type: $event, commit_sha: $sha, commit_message: $msg, commit_author: $author}'
+          )
 
-      pr_title: ${{ github.event.pull_request.title || 'N/A' }}
-      pr_body: ${{ github.event.pull_request.body || 'N/A' }}
-      pr_url: ${{ github.event.pull_request.html_url || 'N/A' }}
-      pr_number: ${{ github.event.pull_request.number || 'N/A' }}
-      pr_author: ${{ github.event.pull_request.user.login || 'N/A' }}
-      pr_state: ${{ github.event.pull_request.state || 'N/A' }}
-      pr_merged: ${{ github.event.pull_request.merged == false }}
-
-      issue_title: ${{ github.event.issue.title || 'N/A' }}
-      issue_body: ${{ github.event.issue.body || 'N/A' }}
-      issue_url: ${{ github.event.issue.html_url || 'N/A' }}
-      issue_number: ${{ github.event.issue.number || 'N/A' }}
-      issue_author: ${{ github.event.issue.user.login || 'N/A' }}
-      issue_state: ${{ github.event.action || 'N/A' }}
-    secrets: inherit
+          gh workflow run github-to-discord.yml \
+            --repo ririf4/Actions \
+            -f payload="$PAYLOAD"
